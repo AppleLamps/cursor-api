@@ -1,0 +1,8 @@
+node_modules/
+dist/
+
+# Upstream vendor — keep agents focused on electron/
+vendor/composer-api/node_modules/
+vendor/composer-api/.wrangler/
+vendor/composer-api/dist/
+vendor/composer-api/macos/

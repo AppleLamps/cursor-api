@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+out/
+*.tsbuildinfo
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# IDE / editor
+.idea/
+*.swp
+*.swo
+*~
+
+# Electron / packaging (future)
+*.asar
+release/
+
+# User runtime (if copied locally for debugging)
+.api-for-cursor/
+
+# Vendored composer-api — build artifacts and secrets
+vendor/composer-api/node_modules/
+vendor/composer-api/.wrangler/
+vendor/composer-api/.dev.vars
+vendor/composer-api/dist/
+vendor/composer-api/.vite/
+vendor/composer-api/sample-projects/

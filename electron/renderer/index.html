@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API for Cursor</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>API for Cursor</h1>
+      <p class="subtitle">Local OpenAI-compatible API for Composer on Windows</p>
+    </header>
+
+    <section class="card status-card">
+      <div class="row">
+        <span id="status-badge" class="badge">Stopped</span>
+        <div class="actions">
+          <button id="btn-start" type="button">Start server</button>
+          <button id="btn-stop" type="button" class="secondary" disabled>Stop</button>
+        </div>
+      </div>
+      <p id="error-banner" class="error-banner hidden" role="alert"></p>
+      <p id="key-banner" class="key-banner hidden"></p>
+      <dl class="endpoints">
+        <div><dt>Base URL</dt><dd><code id="base-url">—</code> <button type="button" class="linkish" data-copy="base-url">Copy</button></dd></div>
+        <div><dt>Chat</dt><dd><code id="chat-url">—</code> <button type="button" class="linkish" data-copy="chat-url">Copy</button></dd></div>
+        <div><dt>Models</dt><dd><code id="models-url">—</code> <button type="button" class="linkish" data-copy="models-url">Copy</button></dd></div>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Cursor API key</h2>
+      <p class="hint">From Cursor Dashboard → Integrations. Harnesses can use <code>cursor-local</code> as the API key; this app substitutes your real key.</p>
+      <div class="row">
+        <input id="api-key" type="password" placeholder="cr_…" autocomplete="off" />
+        <button id="btn-save-key" type="button">Save</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Agent setup</h2>
+      <p class="hint">Install provider profiles pointing at the local base URL.</p>
+      <ul id="integrations" class="integrations"></ul>
+    </section>
+
+    <section class="card">
+      <h2>Logs</h2>
+      <pre id="logs" class="logs"></pre>
+    </section>
+
+    <script src="app.js"></script>
+  </body>
+</html>
