@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { publicBaseUrl } from "./settings.js";
+import { replaceTomlBlock } from "./toml-blocks.js";
 
 export type IntegrationId = "opencode" | "codex" | "vscode" | "cline" | "kilo" | "pi";
 
@@ -295,17 +296,6 @@ function installOpenCode(url: string): void {
   root.provider = provider;
   if (!root.model) root.model = "cursorapi/composer-2.5-fast";
   writeJson(configPath, root);
-}
-
-function replaceTomlBlock(text: string, sectionName: string, replacement: string): string {
-  const escaped = sectionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Match the section header line through to the next section header or end of input.
-  // Note: JS RegExp has no `(?ms)` leading modifier or `\z` anchor; use the `m` flag and
-  // an end-of-input lookahead instead.
-  const pattern = new RegExp(`^\\[${escaped}\\]\\n[\\s\\S]*?(?=^\\[|$(?![\\s\\S]))`, "m");
-  const trimmedReplacement = replacement.trim();
-  const next = text.replace(pattern, trimmedReplacement ? `${trimmedReplacement}\n` : "");
-  return next.replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function installCodex(url: string): void {

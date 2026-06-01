@@ -17,7 +17,8 @@ Windows **Electron** wrapper around vendored [standardagents/composer-api](https
 | Goal | Location |
 |------|----------|
 | Tray / IPC / window | `electron/main.ts`, `electron/preload.ts` |
-| Start/stop stack | `electron/server-controller.ts`, `electron/process-manager.ts` |
+| Start/stop stack | `electron/server-controller.ts`, `electron/service-start.ts`, `electron/process-manager.ts` |
+| Codex TOML install | `electron/toml-blocks.ts`, `electron/provisioner.ts` |
 | Public `/v1` + key substitution | `electron/auth-proxy.ts`, `electron/auth-tokens.ts` |
 | Agent install | `electron/provisioner.ts` |
 | Dashboard UI | `electron/renderer/` |
@@ -43,6 +44,7 @@ Windows **Electron** wrapper around vendored [standardagents/composer-api](https
 
 ```bash
 npm run build
+npm test
 npm run dev
 ```
 

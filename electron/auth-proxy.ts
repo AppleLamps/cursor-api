@@ -1,6 +1,7 @@
 import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isPlaceholderToken } from "./auth-tokens.js";
+import { listenWithPortRetry } from "./port-utils.js";
 
 /** Reject oversized bodies before buffering (local DoS / accidental huge uploads). */
 export const MAX_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
@@ -29,7 +30,7 @@ const CORS_HEADERS: Record<string, string> = {
  * opencode, …) send no Origin header and are always allowed; a remote web page that tries
  * to spend the user's key via `Bearer cursor-local` is rejected.
  */
-function isAllowedOrigin(origin: string | undefined): boolean {
+export function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin || origin === "null") return true;
   try {
     const url = new URL(origin);
@@ -230,16 +231,12 @@ function readBody(req: IncomingMessage, maxBytes: number): Promise<Buffer> {
   });
 }
 
-export function listenAuthProxy(
+export async function listenAuthProxy(
   server: http.Server,
   host: string,
-  port: number
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(port, host, () => {
-      server.removeListener("error", reject);
-      resolve();
-    });
-  });
+  preferredPort: number,
+  exclude: ReadonlySet<number> = new Set(),
+  maxAttempts = 32
+): Promise<number> {
+  return listenWithPortRetry(server, host, preferredPort, exclude, maxAttempts);
 }

@@ -11,6 +11,7 @@ Windows wrapper goals and status. For coding agents: treat **`electron/`** as th
 - [x] Windows dev fixes (containers off, dedicated Vite port)
 - [x] Agent-oriented docs (`AGENTS.md`, `.cursorignore`)
 - [x] Public repo: [github.com/AppleLamps/cursor-api](https://github.com/AppleLamps/cursor-api)
+- [x] Unit tests + Windows CI (`npm test`, GitHub Actions)
 
 ## Next
 
@@ -21,7 +22,7 @@ Windows wrapper goals and status. For coding agents: treat **`electron/`** as th
 | **Production server** | Optional slim local server instead of full Vite dev worker |
 | **More harnesses** | Continue, Aider, Roo (parity with macOS app where feasible) |
 | **Upstream PRs** | `enable_containers` default, shared Electron Vite config |
-| **Tests** | Smoke test for `ServerController.start()` / `/v1/models` |
+| **Tests** | Optional Electron integration smoke; unit tests in `test/` + CI |
 
 ## Non-goals (for now)
 

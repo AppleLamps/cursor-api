@@ -1,6 +1,7 @@
 # API for Cursor (Windows)
 
 [![Repository](https://img.shields.io/badge/repo-AppleLamps%2Fcursor--api-blue)](https://github.com/AppleLamps/cursor-api)
+[![CI](https://github.com/AppleLamps/cursor-api/actions/workflows/ci.yml/badge.svg)](https://github.com/AppleLamps/cursor-api/actions/workflows/ci.yml)
 
 Electron tray app that exposes a **local OpenAI-compatible API** for [Cursor Composer](https://cursor.com) on Windows — the same idea as the official [API for Cursor](https://api-for-cursor.standardagents.ai/) macOS app.
 
@@ -220,6 +221,7 @@ Consider contributing these upstream so the macOS app and Windows share one path
 | `npm run build` | Compile `electron/` → `dist/` |
 | `npm run dev` | Build and launch Electron |
 | `npm start` | Build and launch (alias) |
+| `npm test` | Build and run unit tests (Node test runner) |
 
 ## License
 

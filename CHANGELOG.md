@@ -6,6 +6,12 @@ All notable changes to the **Windows Electron wrapper** (this repo). Upstream [c
 
 ### Added
 
+- Port bind retries: `listenWithPortRetry` (proxy), `startBridgeUntilReady` / `startWorkerUntilReady` (health-check retry)
+- Unit tests (`npm test`) and GitHub Actions CI on Windows
+- `electron/toml-blocks.ts`, `electron/service-start.ts`
+
+### Added (prior)
+
 - Auth proxy: 32 MiB request body cap (413), CORS origin allowlist, integration install errors in UI
 - API key no longer sent to renderer; empty save leaves existing key
 - Codex TOML block replace: valid JavaScript regex (fixes Install crash)

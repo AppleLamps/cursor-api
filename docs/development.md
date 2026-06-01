@@ -21,6 +21,14 @@ If the vendor tree is missing, see [vendor.md](vendor.md).
 
 `postinstall` runs `npm install` inside `vendor/composer-api`.
 
+## Tests
+
+```bash
+npm test
+```
+
+Runs the Node.js test runner against compiled `dist/` (auth tokens, CORS origins, TOML block replace, port bind retry). Does not start Electron or the full server stack.
+
 ## Run loop
 
 ```bash

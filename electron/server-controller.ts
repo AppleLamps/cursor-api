@@ -1,17 +1,13 @@
 import crypto from "node:crypto";
 import type http from "node:http";
 import { createAuthProxy, listenAuthProxy } from "./auth-proxy.js";
-import { pickPort } from "./port-utils.js";
 import {
-  ensureDevVars,
-  startBridge,
-  startWorkerDev,
   stopProcess,
-  tailProcessOutput,
   waitForHttpOk,
   type ManagedProcess,
   type ProcessExitHandler
 } from "./process-manager.js";
+import { startBridgeUntilReady, startWorkerUntilReady } from "./service-start.js";
 import { apiKeyStorageMode } from "./secrets.js";
 import { apiKeyStatus, getSettings, saveSettings } from "./settings.js";
 
@@ -91,8 +87,6 @@ export class ServerController {
     const settings = getSettings();
     this.bridgeToken = crypto.randomBytes(16).toString("hex");
 
-    // Pick each port and start that service immediately so another process cannot
-    // take a port between check and bind (TOCTOU). Track ports already in use.
     const usedPorts = new Set<number>();
     let bridgePort = 0;
     let workerPort = 0;
@@ -111,33 +105,46 @@ export class ServerController {
 
     try {
       this.pushLog("Starting Cursor SDK bridge…");
-      bridgePort = await pickPort("127.0.0.1", settings.bridgePort, 32, usedPorts);
-      usedPorts.add(bridgePort);
-      ensureDevVars(bridgePort, this.bridgeToken);
+      const bridge = await startBridgeUntilReady(
+        settings.bridgePort,
+        this.bridgeToken,
+        usedPorts,
+        this.onProcessExit,
+        (line) => this.pushLog(line)
+      );
+      this.bridge = bridge.process;
+      bridgePort = bridge.port;
       this.status.bridgePort = bridgePort;
-      this.bridge = startBridge(bridgePort, this.bridgeToken, this.onProcessExit);
-      tailProcessOutput(this.bridge, (line) => this.pushLog(`[bridge] ${line}`));
-      await waitForHttpOk(`http://127.0.0.1:${bridgePort}/health`);
 
       this.pushLog("Starting API worker (Vite + Cloudflare)…");
-      workerPort = await pickPort("127.0.0.1", settings.workerPort, 32, usedPorts);
-      usedPorts.add(workerPort);
+      const worker = await startWorkerUntilReady(
+        settings.workerPort,
+        bridgePort,
+        this.bridgeToken,
+        usedPorts,
+        this.onProcessExit,
+        (line) => this.pushLog(line)
+      );
+      this.worker = worker.process;
+      workerPort = worker.port;
       this.status.workerPort = workerPort;
-      this.worker = startWorkerDev(workerPort, bridgePort, this.bridgeToken, this.onProcessExit);
-      tailProcessOutput(this.worker, (line) => this.pushLog(`[worker] ${line}`));
-      await waitForHttpOk(`http://127.0.0.1:${workerPort}/v1/models`);
 
       this.pushLog("Starting public API proxy…");
-      publicPort = await pickPort("127.0.0.1", settings.publicPort, 32, usedPorts);
-      this.status.publicPort = publicPort;
-      this.status.baseUrl = `http://127.0.0.1:${publicPort}/v1`;
       this.proxy = createAuthProxy({
         listenHost: "127.0.0.1",
-        listenPort: publicPort,
+        listenPort: settings.publicPort,
         upstreamOrigin: `http://127.0.0.1:${workerPort}`,
         getCursorApiKey: () => getSettings().cursorApiKey
       });
-      await listenAuthProxy(this.proxy, "127.0.0.1", publicPort);
+      publicPort = await listenAuthProxy(
+        this.proxy,
+        "127.0.0.1",
+        settings.publicPort,
+        usedPorts
+      );
+      usedPorts.add(publicPort);
+      this.status.publicPort = publicPort;
+      this.status.baseUrl = `http://127.0.0.1:${publicPort}/v1`;
       await waitForHttpOk(`http://127.0.0.1:${publicPort}/v1/models`);
 
       if (
