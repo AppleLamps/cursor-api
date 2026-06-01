@@ -33,6 +33,6 @@ Add a repository secret:
 
 **Settings → Secrets and variables → Actions → New repository secret**
 
-The `smoke` workflow job runs on `main` / PRs when this secret exists. Fork PRs from outside contributors do not receive secrets and skip smoke (unit tests still run).
+The `smoke` job runs on every `main` / PR build. If the secret is missing, the step exits successfully with a notice (unit tests still run in `build-test`). Fork PRs from outside contributors do not receive secrets and skip the actual smoke run.
 
 Do not commit `.env` — it is gitignored.

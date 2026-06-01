@@ -46,18 +46,19 @@ jobs:
       - name: Build
         run: npm run build
 
+      # GitHub forbids `secrets.*` in step `if:` — check inside the script instead.
       - name: Full stack smoke (Electron)
-        if: ${{ secrets.CURSOR_API_KEY != '' }}
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
           API_FOR_CURSOR_HOME: ${{ runner.temp }}\api-for-cursor-smoke
           SMOKE_HEALTH_TIMEOUT_MS: "120000"
           SMOKE_HTTP_TIMEOUT_MS: "120000"
           SMOKE_DEADLINE_MS: "300000"
-        run: npm run smoke
-
-      - name: Smoke skipped (no CURSOR_API_KEY secret)
-        if: ${{ secrets.CURSOR_API_KEY == '' }}
+        shell: pwsh
         run: |
-          echo "::notice::Full-stack smoke skipped. Add repository secret CURSOR_API_KEY to enable."
-          echo "See docs/ci-smoke.md"
+          if (-not $env:CURSOR_API_KEY) {
+            Write-Host "::notice::Full-stack smoke skipped. Add repository secret CURSOR_API_KEY."
+            Write-Host "See docs/ci-smoke.md"
+            exit 0
+          }
+          npm run smoke
