@@ -18,7 +18,8 @@
     "build": "tsc",
     "start": "npm run build && electron .",
     "dev": "tsc && electron .",
-    "postinstall": "npm install --prefix vendor/composer-api",
+    "postinstall": "node scripts/install-vendor.mjs",
+    "install:vendor": "node scripts/install-vendor.mjs",
     "vendor:prepare": "npm run db:migrate:local --prefix vendor/composer-api",
     "test": "npm run build && node --test test/*.test.mjs",
     "smoke": "npm run build && electron dist/smoke-main.js"
