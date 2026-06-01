@@ -2,6 +2,17 @@
 
 All notable changes to the **Windows Electron wrapper** (this repo). Upstream [composer-api](https://github.com/standardagents/composer-api) has its own history in `vendor/composer-api`.
 
+## [Unreleased]
+
+### Added
+
+- Auth proxy: 32 MiB request body cap (413), CORS origin allowlist, integration install errors in UI
+- API key no longer sent to renderer; empty save leaves existing key
+- Codex TOML block replace: valid JavaScript regex (fixes Install crash)
+- Port pick: bind each service immediately after choosing its port; exclude already-used ports
+- Provisioner: prune integration config backups (keep 5 per file)
+- Dashboard warning when API key is stored without DPAPI encryption
+
 ## [0.1.0] — 2026-06-01
 
 ### Added

@@ -172,7 +172,7 @@ Use of your Cursor API key is subject to [Cursor’s terms](https://cursor.com/t
 
 | File | Purpose |
 |------|---------|
-| `%USERPROFILE%\.api-for-cursor\settings.json` | App settings and encrypted API key |
+| `%USERPROFILE%\.api-for-cursor\settings.json` | App settings; Cursor API key encrypted with Windows DPAPI when available, otherwise stored as plaintext (see [troubleshooting](docs/troubleshooting.md#api-key-storage)) |
 | `vendor/composer-api/.dev.vars` | Generated on each server start (bridge URL/token) |
 
 Default ports: public **8787**, worker **18787**, bridge **8792**. If busy, the app picks the next free port and saves the new values.

@@ -12,6 +12,7 @@ import {
   type ManagedProcess,
   type ProcessExitHandler
 } from "./process-manager.js";
+import { apiKeyStorageMode } from "./secrets.js";
 import { apiKeyStatus, getSettings, saveSettings } from "./settings.js";
 
 export interface ServerStatus {
@@ -23,6 +24,8 @@ export interface ServerStatus {
   workerPort: number;
   apiKeyConfigured: boolean;
   apiKeyUnlocked: boolean;
+  /** `encrypted` when Windows DPAPI is available; otherwise key is stored as plaintext in settings.json. */
+  apiKeyStorage: "encrypted" | "plaintext";
   error?: string;
   logs: string[];
 }
@@ -46,6 +49,7 @@ export class ServerController {
     workerPort: 18787,
     apiKeyConfigured: false,
     apiKeyUnlocked: false,
+    apiKeyStorage: apiKeyStorageMode(),
     logs: []
   };
 
@@ -55,6 +59,7 @@ export class ServerController {
       ...this.status,
       apiKeyConfigured: key.configured,
       apiKeyUnlocked: key.unlocked,
+      apiKeyStorage: apiKeyStorageMode(),
       logs: [...this.logs]
     };
   }
@@ -86,45 +91,46 @@ export class ServerController {
     const settings = getSettings();
     this.bridgeToken = crypto.randomBytes(16).toString("hex");
 
-    const bridgePort = await pickPort("127.0.0.1", settings.bridgePort);
-    const workerPort = await pickPort("127.0.0.1", settings.workerPort);
-    const publicPort = await pickPort("127.0.0.1", settings.publicPort);
+    // Pick each port and start that service immediately so another process cannot
+    // take a port between check and bind (TOCTOU). Track ports already in use.
+    const usedPorts = new Set<number>();
+    let bridgePort = 0;
+    let workerPort = 0;
+    let publicPort = 0;
 
-    if (
-      bridgePort !== settings.bridgePort ||
-      workerPort !== settings.workerPort ||
-      publicPort !== settings.publicPort
-    ) {
-      saveSettings({ bridgePort, workerPort, publicPort });
-      this.pushLog(
-        `Using ports bridge=${bridgePort}, worker=${workerPort}, public=${publicPort} (defaults were busy)`
-      );
-    }
-
-    ensureDevVars(bridgePort, this.bridgeToken);
     this.status = {
       ...this.status,
       running: true,
       ready: false,
-      publicPort,
-      bridgePort,
-      workerPort,
-      baseUrl: `http://127.0.0.1:${publicPort}/v1`,
+      publicPort: settings.publicPort,
+      bridgePort: settings.bridgePort,
+      workerPort: settings.workerPort,
+      baseUrl: `http://127.0.0.1:${settings.publicPort}/v1`,
       error: undefined
     };
 
     try {
       this.pushLog("Starting Cursor SDK bridge…");
+      bridgePort = await pickPort("127.0.0.1", settings.bridgePort, 32, usedPorts);
+      usedPorts.add(bridgePort);
+      ensureDevVars(bridgePort, this.bridgeToken);
+      this.status.bridgePort = bridgePort;
       this.bridge = startBridge(bridgePort, this.bridgeToken, this.onProcessExit);
       tailProcessOutput(this.bridge, (line) => this.pushLog(`[bridge] ${line}`));
       await waitForHttpOk(`http://127.0.0.1:${bridgePort}/health`);
 
       this.pushLog("Starting API worker (Vite + Cloudflare)…");
+      workerPort = await pickPort("127.0.0.1", settings.workerPort, 32, usedPorts);
+      usedPorts.add(workerPort);
+      this.status.workerPort = workerPort;
       this.worker = startWorkerDev(workerPort, bridgePort, this.bridgeToken, this.onProcessExit);
       tailProcessOutput(this.worker, (line) => this.pushLog(`[worker] ${line}`));
       await waitForHttpOk(`http://127.0.0.1:${workerPort}/v1/models`);
 
       this.pushLog("Starting public API proxy…");
+      publicPort = await pickPort("127.0.0.1", settings.publicPort, 32, usedPorts);
+      this.status.publicPort = publicPort;
+      this.status.baseUrl = `http://127.0.0.1:${publicPort}/v1`;
       this.proxy = createAuthProxy({
         listenHost: "127.0.0.1",
         listenPort: publicPort,
@@ -133,6 +139,17 @@ export class ServerController {
       });
       await listenAuthProxy(this.proxy, "127.0.0.1", publicPort);
       await waitForHttpOk(`http://127.0.0.1:${publicPort}/v1/models`);
+
+      if (
+        bridgePort !== settings.bridgePort ||
+        workerPort !== settings.workerPort ||
+        publicPort !== settings.publicPort
+      ) {
+        saveSettings({ bridgePort, workerPort, publicPort });
+        this.pushLog(
+          `Using ports bridge=${bridgePort}, worker=${workerPort}, public=${publicPort} (defaults were busy)`
+        );
+      }
 
       this.status.ready = true;
       this.pushLog(`Server ready at ${this.status.baseUrl}`);

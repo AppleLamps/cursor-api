@@ -3,7 +3,7 @@ const api = window.apiForCursor;
 const $ = (id) => document.getElementById(id);
 
 function render(state) {
-  const { settings, server, integrations } = state;
+  const { settings, server, integrations, integrationError } = state;
   const base = server.baseUrl || `http://127.0.0.1:${settings.publicPort}/v1`;
 
   $("base-url").textContent = base;
@@ -26,8 +26,9 @@ function render(state) {
   }
 
   const errorBanner = $("error-banner");
-  if (server.error) {
-    errorBanner.textContent = server.error;
+  const errorMessage = server.error || integrationError || "";
+  if (errorMessage) {
+    errorBanner.textContent = errorMessage;
     errorBanner.classList.remove("hidden");
   } else {
     errorBanner.textContent = "";
@@ -38,6 +39,10 @@ function render(state) {
   if (!server.apiKeyUnlocked) {
     keyBanner.textContent = "Save your Cursor API key before starting the server.";
     keyBanner.classList.remove("hidden");
+  } else if (server.apiKeyStorage === "plaintext") {
+    keyBanner.textContent =
+      "API key is stored in settings.json without OS encryption (DPAPI unavailable). Restrict file permissions on your user profile.";
+    keyBanner.classList.remove("hidden");
   } else if (server.running && !server.ready && !server.error) {
     keyBanner.textContent = "Server is starting…";
     keyBanner.classList.remove("hidden");
@@ -47,7 +52,13 @@ function render(state) {
 
   $("btn-start").disabled = server.running || !server.apiKeyUnlocked;
   $("btn-stop").disabled = !server.running;
-  $("api-key").value = settings.cursorApiKey || "";
+  // The real key is never sent to the renderer. Show whether one is saved via the
+  // placeholder, and avoid clobbering whatever the user is currently typing.
+  const keyField = $("api-key");
+  if (document.activeElement !== keyField) {
+    keyField.value = "";
+    keyField.placeholder = server.apiKeyConfigured ? "•••••••• (saved — type to replace)" : "cr_…";
+  }
 
   const list = $("integrations");
   list.innerHTML = "";
@@ -104,7 +115,10 @@ $("btn-start").addEventListener("click", async () => {
 });
 $("btn-stop").addEventListener("click", () => api.stopServer());
 $("btn-save-key").addEventListener("click", () => {
-  api.saveSettings({ cursorApiKey: $("api-key").value.trim() });
+  const value = $("api-key").value.trim();
+  if (!value) return; // empty field means "leave the saved key unchanged"
+  api.saveSettings({ cursorApiKey: value });
+  $("api-key").value = "";
 });
 
 api.getState().then(render);

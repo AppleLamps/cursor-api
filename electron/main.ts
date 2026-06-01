@@ -20,14 +20,20 @@ interface UiState {
   settings: AppSettings;
   server: ReturnType<ServerController["getStatus"]>;
   integrations: ReturnType<typeof listIntegrationStatuses>;
+  integrationError?: string;
 }
+
+let integrationError: string | undefined;
 
 function buildState(): UiState {
   const settings = getSettings();
   return {
-    settings,
+    // Never send the decrypted Cursor API key to the renderer; the UI relies on
+    // server.apiKeyConfigured / apiKeyUnlocked to know whether a key is saved.
+    settings: { ...settings, cursorApiKey: "" },
     server: server.getStatus(),
-    integrations: listIntegrationStatuses(settings.publicPort)
+    integrations: listIntegrationStatuses(settings.publicPort),
+    integrationError
   };
 }
 
@@ -122,7 +128,12 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle("install-integration", (_event, id: string) => {
     const settings = getSettings();
-    installIntegration(id as IntegrationId, settings.publicPort);
+    try {
+      installIntegration(id as IntegrationId, settings.publicPort);
+      integrationError = undefined;
+    } catch (error) {
+      integrationError = `Failed to install ${id}: ${error instanceof Error ? error.message : String(error)}`;
+    }
     broadcastState();
     return buildState();
   });

@@ -14,11 +14,13 @@ export async function isPortAvailable(host: string, port: number): Promise<boole
 export async function pickPort(
   host: string,
   preferred: number,
-  maxAttempts = 32
+  maxAttempts = 32,
+  exclude: ReadonlySet<number> = new Set()
 ): Promise<number> {
   for (let offset = 0; offset < maxAttempts; offset += 1) {
     const port = preferred + offset;
     if (port > 65535) break;
+    if (exclude.has(port)) continue;
     if (await isPortAvailable(host, port)) return port;
   }
   throw new Error(`No free port found near ${preferred} on ${host}`);

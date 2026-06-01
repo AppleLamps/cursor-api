@@ -2,6 +2,9 @@ import http from "node:http";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { isPlaceholderToken } from "./auth-tokens.js";
 
+/** Reject oversized bodies before buffering (local DoS / accidental huge uploads). */
+export const MAX_REQUEST_BODY_BYTES = 32 * 1024 * 1024;
+
 const HOP_BY_HOP = new Set([
   "connection",
   "keep-alive",
@@ -14,12 +17,40 @@ const HOP_BY_HOP = new Set([
 ]);
 
 const CORS_HEADERS: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "Authorization, Content-Type, OpenAI-Beta, OpenAI-Organization, OpenAI-Project, X-Request-ID, X-Session-Affinity, X-OpenCode-Session-Id, X-OpenCode-Session, X-CursorAPI-Session, X-CursorAPI-Project, X-Project-Path, X-Workspace-Path, X-Working-Directory",
   "Access-Control-Allow-Methods": "GET, HEAD, POST, DELETE, OPTIONS",
   "Access-Control-Max-Age": "86400"
 };
+
+/**
+ * Only browser pages served from localhost (or `file:`/`null` origins like the Electron
+ * renderer) may use this key-injecting proxy cross-origin. Native clients (curl, codex,
+ * opencode, …) send no Origin header and are always allowed; a remote web page that tries
+ * to spend the user's key via `Bearer cursor-local` is rejected.
+ */
+function isAllowedOrigin(origin: string | undefined): boolean {
+  if (!origin || origin === "null") return true;
+  try {
+    const url = new URL(origin);
+    if (url.protocol === "file:") return true;
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1" || url.hostname === "[::1]";
+  } catch {
+    return false;
+  }
+}
+
+function corsHeaders(origin: string | undefined): Record<string, string> {
+  const headers = { ...CORS_HEADERS };
+  // Reflect the specific allowed origin rather than `*` so only vetted callers can read responses.
+  if (origin && origin !== "null") {
+    headers["Access-Control-Allow-Origin"] = origin;
+    headers["Vary"] = "Origin";
+  } else {
+    headers["Access-Control-Allow-Origin"] = "*";
+  }
+  return headers;
+}
 
 export interface AuthProxyOptions {
   listenHost: string;
@@ -30,14 +61,29 @@ export interface AuthProxyOptions {
 
 export function createAuthProxy(options: AuthProxyOptions): http.Server {
   return http.createServer((req, res) => {
+    const origin = req.headers.origin;
+    if (!isAllowedOrigin(origin)) {
+      res.writeHead(403, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({
+          error: {
+            message: "Cross-origin requests are not allowed for this local API.",
+            type: "invalid_request_error",
+            code: "forbidden"
+          }
+        })
+      );
+      return;
+    }
+    const cors = corsHeaders(origin);
     if (req.method === "OPTIONS") {
-      res.writeHead(204, CORS_HEADERS);
+      res.writeHead(204, cors);
       res.end();
       return;
     }
-    proxyRequest(req, res, options).catch((error) => {
+    proxyRequest(req, res, options, cors).catch((error) => {
       if (!res.headersSent) {
-        res.writeHead(502, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.writeHead(502, { ...cors, "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
             error: {
@@ -54,7 +100,8 @@ export function createAuthProxy(options: AuthProxyOptions): http.Server {
 async function proxyRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  options: AuthProxyOptions
+  options: AuthProxyOptions,
+  cors: Record<string, string>
 ): Promise<void> {
   const upstream = new URL(req.url || "/", options.upstreamOrigin);
   const headers = new Headers();
@@ -73,7 +120,7 @@ async function proxyRequest(
     if (isPlaceholderToken(token)) {
       const apiKey = options.getCursorApiKey()?.trim();
       if (!apiKey) {
-        res.writeHead(401, { ...CORS_HEADERS, "Content-Type": "application/json" });
+        res.writeHead(401, { ...cors, "Content-Type": "application/json" });
         res.end(
           JSON.stringify({
             error: {
@@ -90,8 +137,27 @@ async function proxyRequest(
   }
 
   const method = req.method || "GET";
-  const body =
-    method === "GET" || method === "HEAD" ? undefined : await readBody(req);
+  let body: Buffer | undefined;
+  if (method !== "GET" && method !== "HEAD") {
+    try {
+      body = await readBody(req, MAX_REQUEST_BODY_BYTES);
+    } catch (error) {
+      if (error instanceof BodyTooLargeError) {
+        res.writeHead(413, { ...cors, "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: {
+              message: `Request body exceeds ${MAX_REQUEST_BODY_BYTES} bytes.`,
+              type: "invalid_request_error",
+              code: "payload_too_large"
+            }
+          })
+        );
+        return;
+      }
+      throw error;
+    }
+  }
 
   const controller = new AbortController();
   req.on("aborted", () => controller.abort());
@@ -106,7 +172,7 @@ async function proxyRequest(
     signal: controller.signal
   });
 
-  const responseHeaders: Record<string, string> = { ...CORS_HEADERS };
+  const responseHeaders: Record<string, string> = { ...cors };
   upstreamResponse.headers.forEach((value, key) => {
     if (HOP_BY_HOP.has(key.toLowerCase())) return;
     responseHeaders[key] = value;
@@ -139,10 +205,26 @@ function parseBearer(header: string): string | undefined {
   return match?.[1]?.trim();
 }
 
-function readBody(req: IncomingMessage): Promise<Buffer> {
+class BodyTooLargeError extends Error {
+  constructor() {
+    super("Request body too large");
+    this.name = "BodyTooLargeError";
+  }
+}
+
+function readBody(req: IncomingMessage, maxBytes: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
-    req.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    let size = 0;
+    req.on("data", (chunk: Buffer) => {
+      size += chunk.length;
+      if (size > maxBytes) {
+        req.destroy();
+        reject(new BodyTooLargeError());
+        return;
+      }
+      chunks.push(chunk);
+    });
     req.on("end", () => resolve(Buffer.concat(chunks)));
     req.on("error", reject);
   });

@@ -64,6 +64,25 @@ Typical causes:
 3. Windows Firewall: allow Node/Electron on private networks for localhost (usually not prompted for 127.0.0.1).
 4. HTTPS clients pointing at `http://127.0.0.1` will fail — use HTTP only.
 
+## API key storage
+
+The app stores your Cursor API key in `%USERPROFILE%\.api-for-cursor\settings.json`.
+
+| Mode | When | What it means |
+|------|------|----------------|
+| **Encrypted** | Electron `safeStorage` / Windows DPAPI is available | Key is prefixed with `enc:` and not readable as plain text in the file |
+| **Plaintext** | DPAPI unavailable (unusual on normal Windows installs) | Key is written as plain text in `settings.json`; the dashboard shows a warning banner |
+
+The renderer never receives the decrypted key over IPC. If you see the plaintext warning, treat `settings.json` like a password file (user-only ACL, no cloud sync of that folder).
+
+## Request body too large (413)
+
+The public auth proxy rejects request bodies larger than **32 MiB** before forwarding to the worker. If a harness sends huge payloads, split them or reduce attachment size.
+
+## Integration config backups
+
+**Install** backs up existing harness configs as `*.api-for-cursor-backup.<timestamp>` next to the original file. The app keeps the **5 most recent** backups per file and deletes older ones automatically.
+
 ## Codex / Responses: tools not supported
 
 ```json

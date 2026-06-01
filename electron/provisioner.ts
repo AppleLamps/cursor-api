@@ -16,6 +16,7 @@ export interface IntegrationStatus {
 const MODELS = ["composer-2.5", "composer-2.5-fast"] as const;
 const BRAND = "API for Cursor";
 const BACKUP_MARKER = "api-for-cursor-backup";
+const MAX_BACKUPS_PER_FILE = 5;
 
 function homeDir(): string {
   return os.homedir();
@@ -47,6 +48,31 @@ function writeText(filePath: string, text: string): void {
   fs.writeFileSync(filePath, text, "utf8");
 }
 
+function pruneBackups(filePath: string): void {
+  const dir = path.dirname(filePath);
+  const prefix = `${path.basename(filePath)}.${BACKUP_MARKER}.`;
+  let entries: { path: string; mtimeMs: number }[];
+  try {
+    entries = fs
+      .readdirSync(dir)
+      .filter((name) => name.startsWith(prefix))
+      .map((name) => {
+        const full = path.join(dir, name);
+        return { path: full, mtimeMs: fs.statSync(full).mtimeMs };
+      })
+      .sort((a, b) => b.mtimeMs - a.mtimeMs);
+  } catch {
+    return;
+  }
+  for (const old of entries.slice(MAX_BACKUPS_PER_FILE)) {
+    try {
+      fs.unlinkSync(old.path);
+    } catch {
+      // Best-effort cleanup.
+    }
+  }
+}
+
 function backupIfChanged(filePath: string, nextText: string): void {
   if (!fs.existsSync(filePath)) return;
   const current = fs.readFileSync(filePath);
@@ -55,6 +81,7 @@ function backupIfChanged(filePath: string, nextText: string): void {
   const stamp = Date.now();
   const backupPath = `${filePath}.${BACKUP_MARKER}.${stamp}`;
   fs.copyFileSync(filePath, backupPath);
+  pruneBackups(filePath);
 }
 
 function readJson(filePath: string, fallback: unknown): unknown {
@@ -272,7 +299,10 @@ function installOpenCode(url: string): void {
 
 function replaceTomlBlock(text: string, sectionName: string, replacement: string): string {
   const escaped = sectionName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`(?ms)^\\[${escaped}\\]\\n.*?(?=^\\[|\\z)`);
+  // Match the section header line through to the next section header or end of input.
+  // Note: JS RegExp has no `(?ms)` leading modifier or `\z` anchor; use the `m` flag and
+  // an end-of-input lookahead instead.
+  const pattern = new RegExp(`^\\[${escaped}\\]\\n[\\s\\S]*?(?=^\\[|$(?![\\s\\S]))`, "m");
   const trimmedReplacement = replacement.trim();
   const next = text.replace(pattern, trimmedReplacement ? `${trimmedReplacement}\n` : "");
   return next.replace(/\n{3,}/g, "\n\n").trim();
