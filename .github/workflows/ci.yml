@@ -23,6 +23,9 @@ jobs:
       - name: Install vendor dependencies
         run: npm run install:vendor
 
+      - name: Download Electron binary
+        run: node node_modules/electron/install.js
+
       - name: Build
         run: npm run build
 
@@ -45,6 +48,9 @@ jobs:
 
       - name: Install vendor dependencies
         run: npm run install:vendor
+
+      - name: Download Electron binary
+        run: node node_modules/electron/install.js
 
       - name: Prepare vendor database
         run: npm run vendor:prepare
