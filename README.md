@@ -202,6 +202,7 @@ cursor-api/
 - [Roadmap](docs/roadmap.md) — done vs planned
 - [Troubleshooting](docs/troubleshooting.md) — common errors on Windows
 - [CHANGELOG.md](CHANGELOG.md) — wrapper release notes
+- [CI smoke test](docs/ci-smoke.md) — GitHub Actions secret + local `npm run smoke`
 
 ## Upstream / Windows patches
 
@@ -222,6 +223,7 @@ Consider contributing these upstream so the macOS app and Windows share one path
 | `npm run dev` | Build and launch Electron |
 | `npm start` | Build and launch (alias) |
 | `npm test` | Build and run unit tests (Node test runner) |
+| `npm run smoke` | Headless Electron: start stack, `GET /v1/models` (needs `.env` or `CURSOR_API_KEY`) |
 
 ## License
 

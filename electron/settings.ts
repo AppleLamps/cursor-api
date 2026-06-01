@@ -20,8 +20,14 @@ const defaults: AppSettings = {
   autoStartServer: true
 };
 
+function settingsDir(): string {
+  const override = process.env.API_FOR_CURSOR_HOME?.trim();
+  if (override) return override;
+  return path.join(os.homedir(), ".api-for-cursor");
+}
+
 function settingsPath(): string {
-  return path.join(os.homedir(), ".api-for-cursor", "settings.json");
+  return path.join(settingsDir(), "settings.json");
 }
 
 function readStore(): AppSettings {

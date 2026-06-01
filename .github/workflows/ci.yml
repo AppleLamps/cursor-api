@@ -23,5 +23,41 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Test
+      - name: Unit tests
         run: npm test
+
+  smoke:
+    runs-on: windows-latest
+    needs: build-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare vendor database
+        run: npm run vendor:prepare
+
+      - name: Build
+        run: npm run build
+
+      - name: Full stack smoke (Electron)
+        if: ${{ secrets.CURSOR_API_KEY != '' }}
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          API_FOR_CURSOR_HOME: ${{ runner.temp }}\api-for-cursor-smoke
+          SMOKE_HEALTH_TIMEOUT_MS: "120000"
+          SMOKE_HTTP_TIMEOUT_MS: "120000"
+          SMOKE_DEADLINE_MS: "300000"
+        run: npm run smoke
+
+      - name: Smoke skipped (no CURSOR_API_KEY secret)
+        if: ${{ secrets.CURSOR_API_KEY == '' }}
+        run: |
+          echo "::notice::Full-stack smoke skipped. Add repository secret CURSOR_API_KEY to enable."
+          echo "See docs/ci-smoke.md"

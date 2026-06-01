@@ -45,6 +45,8 @@ Windows **Electron** wrapper around vendored [standardagents/composer-api](https
 ```bash
 npm run build
 npm test
+npm run vendor:prepare   # required before smoke
+npm run smoke            # full stack; needs CURSOR_API_KEY in .env
 npm run dev
 ```
 

@@ -20,7 +20,8 @@
     "dev": "tsc && electron .",
     "postinstall": "npm install --prefix vendor/composer-api",
     "vendor:prepare": "npm run db:migrate:local --prefix vendor/composer-api",
-    "test": "npm run build && node --test test/*.test.mjs"
+    "test": "npm run build && node --test test/*.test.mjs",
+    "smoke": "npm run build && electron dist/smoke-main.js"
   },
   "dependencies": {},
   "devDependencies": {

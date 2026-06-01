@@ -145,7 +145,10 @@ export class ServerController {
       usedPorts.add(publicPort);
       this.status.publicPort = publicPort;
       this.status.baseUrl = `http://127.0.0.1:${publicPort}/v1`;
-      await waitForHttpOk(`http://127.0.0.1:${publicPort}/v1/models`);
+      const proxyReadyMs = Number(process.env.SMOKE_HTTP_TIMEOUT_MS);
+      const proxyTimeout =
+        Number.isFinite(proxyReadyMs) && proxyReadyMs > 0 ? proxyReadyMs : 60_000;
+      await waitForHttpOk(`http://127.0.0.1:${publicPort}/v1/models`, proxyTimeout);
 
       if (
         bridgePort !== settings.bridgePort ||

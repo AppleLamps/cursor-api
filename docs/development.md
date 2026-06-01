@@ -29,6 +29,14 @@ npm test
 
 Runs the Node.js test runner against compiled `dist/` (auth tokens, CORS origins, TOML block replace, port bind retry). Does not start Electron or the full server stack.
 
+## Full-stack smoke
+
+See [ci-smoke.md](ci-smoke.md). Requires `npm run vendor:prepare` and `CURSOR_API_KEY` in `.env` (local) or environment.
+
+```bash
+npm run smoke
+```
+
 ## Run loop
 
 ```bash

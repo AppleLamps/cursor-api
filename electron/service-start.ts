@@ -10,8 +10,12 @@ import {
 import { isPortAvailable } from "./port-utils.js";
 
 const HOST = "127.0.0.1";
-const HEALTH_TIMEOUT_MS = 25_000;
 const MAX_PORT_ATTEMPTS = 32;
+
+function healthTimeoutMs(): number {
+  const fromEnv = Number(process.env.SMOKE_HEALTH_TIMEOUT_MS);
+  return Number.isFinite(fromEnv) && fromEnv > 0 ? fromEnv : 25_000;
+}
 
 export async function startBridgeUntilReady(
   preferredPort: number,
@@ -32,7 +36,7 @@ export async function startBridgeUntilReady(
     tailProcessOutput(proc, (line) => onLog(`[bridge] ${line}`));
 
     try {
-      await waitForHttpOk(`http://${HOST}:${port}/health`, HEALTH_TIMEOUT_MS);
+      await waitForHttpOk(`http://${HOST}:${port}/health`, healthTimeoutMs());
       return { process: proc, port };
     } catch {
       stopProcess(proc);
@@ -62,7 +66,7 @@ export async function startWorkerUntilReady(
     tailProcessOutput(proc, (line) => onLog(`[worker] ${line}`));
 
     try {
-      await waitForHttpOk(`http://${HOST}:${port}/v1/models`, HEALTH_TIMEOUT_MS);
+      await waitForHttpOk(`http://${HOST}:${port}/v1/models`, healthTimeoutMs());
       return { process: proc, port };
     } catch {
       stopProcess(proc);

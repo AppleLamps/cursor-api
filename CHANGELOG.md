@@ -6,6 +6,11 @@ All notable changes to the **Windows Electron wrapper** (this repo). Upstream [c
 
 ### Added
 
+- Headless Electron smoke test (`npm run smoke`) and CI job (repository secret `CURSOR_API_KEY`)
+- `electron/smoke-main.ts`, `electron/env-file.ts`; `API_FOR_CURSOR_HOME` for isolated smoke settings
+
+### Added (prior)
+
 - Port bind retries: `listenWithPortRetry` (proxy), `startBridgeUntilReady` / `startWorkerUntilReady` (health-check retry)
 - Unit tests (`npm test`) and GitHub Actions CI on Windows
 - `electron/toml-blocks.ts`, `electron/service-start.ts`
