@@ -10,6 +10,7 @@ import {
 import { startBridgeUntilReady, startWorkerUntilReady } from "./service-start.js";
 import { apiKeyStorageMode } from "./secrets.js";
 import { apiKeyStatus, getSettings, saveSettings } from "./settings.js";
+import { ensureVendorMigrations } from "./vendor-migrate.js";
 
 export interface ServerStatus {
   running: boolean;
@@ -85,6 +86,7 @@ export class ServerController {
     }
 
     const settings = getSettings();
+    ensureVendorMigrations();
     this.bridgeToken = crypto.randomBytes(16).toString("hex");
 
     const usedPorts = new Set<number>();

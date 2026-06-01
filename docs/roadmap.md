@@ -13,13 +13,14 @@ Windows wrapper goals and status. For coding agents: treat **`electron/`** as th
 - [x] Public repo: [github.com/AppleLamps/cursor-api](https://github.com/AppleLamps/cursor-api)
 - [x] Unit tests + Windows CI (`npm test`, GitHub Actions)
 - [x] Full-stack Electron smoke (`npm run smoke`, CI with `CURSOR_API_KEY` secret)
+- [x] Portable Windows `.exe` (`npm run pack`, [packaging.md](packaging.md))
 
 ## Next
 
 | Item | Notes |
 |------|--------|
 | **Vendor sync** | Script or fork to merge upstream composer-api; see [vendor.md](vendor.md) |
-| **Windows installer** | `electron-builder` or similar; ship Node/runtime or document prerequisites |
+| **Windows installer** | CI build of portable/setup; code signing for SmartScreen |
 | **Production server** | Optional slim local server instead of full Vite dev worker |
 | **More harnesses** | Continue, Aider, Roo (parity with macOS app where feasible) |
 | **Upstream PRs** | `enable_containers` default, shared Electron Vite config |

@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Electron tray app — local OpenAI-compatible API for Cursor Composer on Windows",
   "main": "dist/main.js",
-  "author": "",
+  "author": "AppleLamps",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -22,12 +22,62 @@
     "install:vendor": "node scripts/install-vendor.mjs",
     "vendor:prepare": "npm run db:migrate:local --prefix vendor/composer-api",
     "test": "npm run build && node --test test/*.test.mjs",
-    "smoke": "npm run build && electron dist/smoke-main.js"
+    "smoke": "npm run build && electron dist/smoke-main.js",
+    "pack": "node scripts/prepare-pack.mjs && electron-builder --win portable",
+    "pack:setup": "node scripts/prepare-pack.mjs && electron-builder --win nsis"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/node": "^22.10.0",
     "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
     "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "com.applelamps.api-for-cursor",
+    "productName": "API for Cursor",
+    "copyright": "Copyright © 2026 AppleLamps",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "extraResources": [
+      {
+        "from": "electron/renderer",
+        "to": "renderer"
+      },
+      {
+        "from": "vendor/composer-api",
+        "to": "vendor/composer-api",
+        "filter": [
+          "**/*",
+          "!macos/**",
+          "!**/.git/**",
+          "!**/sample-projects/**"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "API-for-Cursor-${version}-portable.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "API-for-Cursor-${version}-setup.exe"
+    }
   }
 }

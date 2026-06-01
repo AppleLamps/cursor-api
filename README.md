@@ -41,7 +41,7 @@ Upstream logic lives in `vendor/composer-api` (MIT). This repo adds the Windows 
 ## Requirements
 
 - **Windows 10 or 11**
-- **[Node.js](https://nodejs.org/) 20+** (for development; a packaged `.exe` is not shipped yet)
+- **[Node.js](https://nodejs.org/) 20+** (only for building from source; see [packaging](docs/packaging.md) for a `.exe`)
 - **Cursor account** with an API key from [Cursor Dashboard → Integrations](https://cursor.com/dashboard?tab=integrations)
 
 ## Quick start
@@ -60,6 +60,10 @@ npm run vendor:prepare
 `vendor:prepare` applies local D1 migrations for the Cloudflare worker dev server.
 
 ### 2. Run the app
+
+**Portable `.exe` (no terminal):** build once with `npm run pack`, then run `release/API-for-Cursor-*-portable.exe`. See [docs/packaging.md](docs/packaging.md).
+
+**From source:**
 
 ```bash
 npm run dev
@@ -224,6 +228,8 @@ Consider contributing these upstream so the macOS app and Windows share one path
 | `npm start` | Build and launch (alias) |
 | `npm test` | Build and run unit tests (Node test runner) |
 | `npm run smoke` | Headless Electron: start stack, `GET /v1/models` (needs `.env` or `CURSOR_API_KEY`) |
+| `npm run pack` | Build portable Windows `.exe` in `release/` |
+| `npm run pack:setup` | Build NSIS installer `.exe` in `release/` |
 
 ## License
 

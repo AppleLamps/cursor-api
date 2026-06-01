@@ -7,7 +7,7 @@ import {
   listIntegrationStatuses,
   type IntegrationId
 } from "./provisioner.js";
-import { distDir, repoRoot } from "./paths.js";
+import { distDir, rendererIndexPath } from "./paths.js";
 import { loadTrayIcon } from "./tray-icon.js";
 
 const server = new ServerController();
@@ -54,7 +54,7 @@ async function createWindow(): Promise<void> {
       nodeIntegration: false
     }
   });
-  await window.loadFile(path.join(repoRoot(), "electron", "renderer", "index.html"));
+  await window.loadFile(rendererIndexPath());
   window.show();
   window.on("close", (event) => {
     if (!quitting) {

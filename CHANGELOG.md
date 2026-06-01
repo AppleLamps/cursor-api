@@ -6,6 +6,11 @@ All notable changes to the **Windows Electron wrapper** (this repo). Upstream [c
 
 ### Added
 
+- Windows portable `.exe` and NSIS installer via `npm run pack` / `npm run pack:setup` ([packaging.md](docs/packaging.md))
+- Packaged path resolution (`resources/vendor`, `resources/renderer`) and auto D1 migrate on server start
+
+### Added (prior)
+
 - Headless Electron smoke test (`npm run smoke`) and CI job (repository secret `CURSOR_API_KEY`)
 - `electron/smoke-main.ts`, `electron/env-file.ts`; `API_FOR_CURSOR_HOME` for isolated smoke settings
 
